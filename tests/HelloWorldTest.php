@@ -1,6 +1,6 @@
 <?php
 
-require_once '../html/hello.php';
+require_once '../src/hello.php';
 
 class HelloWorldTest extends PHPUnit\Framework\TestCase
 {
@@ -8,7 +8,7 @@ class HelloWorldTest extends PHPUnit\Framework\TestCase
  {
     // Capture the output of hello.php
     ob_start();
-    include '../html/hello.php';
+    include '../src/hello.php';
     $output = ob_get_clean();
 
     // Assert that the output is "Hello, Docker!"
