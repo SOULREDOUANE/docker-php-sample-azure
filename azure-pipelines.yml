@@ -49,9 +49,10 @@ steps:
     repository: $(repositoryName)
     command: 'buildAndPush'
     Dockerfile: '**/Dockerfile'
+    buildContext: '$(Build.SourcesDirectory)'
+    arguments: '--build-arg VENDOR_ARTIFACT=vendor-artifact'
     tags: |
       $(tag)
-          
 
 # - script: |
 #     docker build -t myapp:latest .
