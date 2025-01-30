@@ -1,16 +1,13 @@
-# PHP
-# Test and package your PHP project.
-# Add steps that run tests, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/php
-
 trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  name : default
+  demands: 
+  - agent.name -equals jesa-agent
 
 variables:
-  phpVersion: 8.1
+  phpVersion: 8.2.27
 
 steps:
 - script: |
