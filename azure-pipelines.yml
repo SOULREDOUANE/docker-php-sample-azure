@@ -43,6 +43,10 @@ steps:
     testResultsFiles: 'test-results.xml'
     testRunTitle: 'PHPUnit Test Results'
     testResultsFormat: 'JUnit'
+- task: DownloadBuildArtifacts@0
+  inputs:
+    artifactName: 'vendor-artifact'
+    downloadPath: '$(Build.ArtifactStagingDirectory)'
 - task: Docker@2
   inputs:
     containerRegistry: acr-registry #dockerhub
