@@ -25,6 +25,12 @@ steps:
 - script: composer install --no-interaction --prefer-dist
   displayName: 'composer install'
 
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'vendor'
+    ArtifactName: 'vendor-artifact'
+    publishLocation: 'Container'
+
 # Run tests
 - script: |
     ./vendor/bin/phpunit tests/HelloWorldTest.php --log-junit test-results.xml
