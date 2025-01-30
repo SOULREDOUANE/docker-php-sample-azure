@@ -25,6 +25,15 @@ steps:
 # Run tests
 - script: |
     ./vendor/bin/phpunit tests/HelloWorldTest.php
+  displayName: 'Run PHPUnit Tests'
+  continueOnError: true  # Ensure pipeline continues even if tests fail
+
+- task: PublishTestResults@2
+  displayName: 'Publish Test Results'
+  inputs:
+    testResultsFiles: 'test-results.xml'
+    testRunTitle: 'PHPUnit Test Results'
+    testResultsFormat: 'JUnit'
 
 # - script: |
 #     docker build -t myapp:latest .
