@@ -23,9 +23,9 @@ steps:
   displayName: 'composer install'
 
 # Run tests
-# - script: |
-#     vendor/bin/phpunit --coverage-text
-#   displayName: 'Run unit tests with PHPUnit'
+- script: |
+    vendor/bin/phpunit --coverage-text
+  displayName: 'Run unit tests with PHPUnit'
 
 # - script: |
 #     docker build -t myapp:latest .
