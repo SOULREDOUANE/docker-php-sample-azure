@@ -34,6 +34,15 @@ steps:
     testResultsFiles: 'test-results.xml'
     testRunTitle: 'PHPUnit Test Results'
     testResultsFormat: 'JUnit'
+- task: Docker@2
+  inputs:
+    containerRegistry: acr-registry #dockerhub
+    repository: $(repositoryName)
+    command: 'buildAndPush'
+    Dockerfile: '**/Dockerfile'
+    tags: |
+      $(tag)
+          
 
 # - script: |
 #     docker build -t myapp:latest .
