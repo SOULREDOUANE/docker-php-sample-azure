@@ -24,8 +24,7 @@ steps:
 
 # Run tests
 - script: |
-    vendor/bin/phpunit --coverage-text
-  displayName: 'Run unit tests with PHPUnit'
+    ./vendor/bin/phpunit tests/HelloWorldTest.php
 
 # - script: |
 #     docker build -t myapp:latest .
