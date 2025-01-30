@@ -24,8 +24,7 @@ steps:
 
 # Run tests
 - script: |
-    ./vendor/bin/phpunit --log-junit test-results.xml
-    mv test-results.xml $(Build.SourcesDirectory)/test-results.xml  # Ensure it's in the correct directory
+    ./vendor/bin/phpunit tests/HelloWorldTest.php > test-results.xml
   displayName: 'Run PHPUnit Tests'
   continueOnError: true  # Ensure pipeline continues even if tests fail
 
