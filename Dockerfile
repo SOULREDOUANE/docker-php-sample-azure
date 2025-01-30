@@ -48,7 +48,8 @@ COPY ./src /var/www/html
 
 # Step 6: Copy the vendor directory from the artifact
 # Assuming the artifact is named 'vendor-artifact' and it's available from the pipeline
-COPY $(Build.ArtifactStagingDirectory)/$(VENDOR_ARTIFACT) /var/www/html/vendor
+# COPY $(Build.ArtifactStagingDirectory)/$(VENDOR_ARTIFACT) /var/www/html/vendor
+Copy vendor /var/www/html/vendor
 
 # Step 7: Set Apache user to run the app (for security and permissions)
 USER www-data
