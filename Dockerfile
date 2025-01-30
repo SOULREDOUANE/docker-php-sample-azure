@@ -29,21 +29,33 @@
 # USER www-data
 # -----------
 
-# Use PHP 8.2 with Apache
-FROM php:8.2-apache as final
 
-# Install PHP extensions
+# Step 1: Use the PHP 8.2 base image with Apache
+FROM php:8.2-apache AS base
+
+# Step 2: Install necessary PHP extensions (pdo, pdo_mysql)
 RUN docker-php-ext-install pdo pdo_mysql
 
-# Set PHP configuration
+# Step 3: Set PHP configuration
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Accept the 'vendor' artifact passed from pipeline
+# Step 4: Accept the 'vendor' artifact passed from pipeline
+# ARG VENDOR_ARTIFACT is passed from the pipeline
 ARG VENDOR_ARTIFACT
 
-# Copy application code and vendor directory from artifact
+# Step 5: Copy application code from the build context (source code in the `src` folder)
 COPY ./src /var/www/html
 
-# Ensure the correct location for the artifact directory
-COPY /$(Build.ArtifactStagingDirectory)/$(VENDOR_ARTIFACT) /var/www/html/vendor
+# Step 6: Copy the vendor directory from the artifact
+# Assuming the artifact is named 'vendor-artifact' and it's available from the pipeline
+COPY $(Build.ArtifactStagingDirectory)/$(VENDOR_ARTIFACT) /var/www/html/vendor
+
+# Step 7: Set Apache user to run the app (for security and permissions)
+USER www-data
+
+# Step 8: Expose the port Apache runs on (optional for local testing)
+EXPOSE 80
+
+# Step 9: Set the working directory (optional but can be useful)
+WORKDIR /var/www/html
 
