@@ -4,6 +4,7 @@
 $db_host = getenv('DB_HOST');
 $db_name = getenv('DB_NAME');
 $db_user = getenv('DB_USER');
+$password_file_path = getenv('PASSWORD_FILE_PATH');
 
 // Read the password file path from an environment variable
 $password_file_path = getenv('PASSWORD_FILE_PATH');
