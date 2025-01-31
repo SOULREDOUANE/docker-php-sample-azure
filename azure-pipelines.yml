@@ -59,7 +59,7 @@ steps:
       $(tag)
 
 - script: |
-    docker run -d --name test-container -p 8080:80 $(repositoryName):$(tag)
+    docker run -d --name test-container -p 8080:80 jesaregistry.azurecr.io/$(repositoryName):$(tag)
     sleep 10  # Wait for the container to start
     curl --fail http://localhost:8080/database.php || (echo "Health check failed!" && exit 1)
     docker stop test-container && docker rm test-container
