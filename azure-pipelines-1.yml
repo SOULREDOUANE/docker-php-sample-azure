@@ -66,7 +66,7 @@ steps:
       --build-arg DB_HOST=$(DB_HOST)
       --build-arg DB_NAME=$(DB_NAME)
       --build-arg DB_USER=$(DB_USER)
-      --build-arg PASSWORD_FILE=$(passwordFilePath)
+      --build-arg PASSWORD_FILE_PATH=$(passwordFilePath)
       --build-arg VENDOR_ARTIFACT=vendor-artifact
     tags: |
       $(tag)
