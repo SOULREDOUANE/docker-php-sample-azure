@@ -4,7 +4,7 @@ trigger:
 pool:
   name : default
   demands: 
-  - agent.name -equals jesa-agent
+  - agent.name -equals dockeragent-soul-agent
 
 variables:
   tag: '$(Build.BuildId)'
@@ -21,12 +21,12 @@ variables:
 
 steps:
 - script: |
-    sudo update-alternatives --set php /usr/bin/php$(phpVersion)
-    sudo update-alternatives --set phar /usr/bin/phar$(phpVersion)
-    sudo update-alternatives --set phpdbg /usr/bin/phpdbg$(phpVersion)
-    sudo update-alternatives --set php-cgi /usr/bin/php-cgi$(phpVersion)
-    sudo update-alternatives --set phar.phar /usr/bin/phar.phar$(phpVersion)
-    php -version
+       update-alternatives --set php /usr/bin/php$(phpVersion)
+       update-alternatives --set phar /usr/bin/phar$(phpVersion)
+       update-alternatives --set phpdbg /usr/bin/phpdbg$(phpVersion)
+       update-alternatives --set php-cgi /usr/bin/php-cgi$(phpVersion)
+       update-alternatives --set phar.phar /usr/bin/phar.phar$(phpVersion)
+       php -version
   displayName: 'Use PHP version $(phpVersion)'
 
 - script: composer install --no-interaction --prefer-dist
