@@ -10,7 +10,7 @@ variables:
   tag: '$(Build.BuildId)'
   repositoryName: jesaregistry/jesa-php
   phpVersion: 8.2.27
-  passwordFilePath: '/run/secrets/db_password'
+  # passwordFilePath: '/run/secrets/db_password'
 
 # services:
 #   mysql:
@@ -66,7 +66,7 @@ steps:
       --build-arg DB_HOST=$(DB_HOST)
       --build-arg DB_NAME=$(DB_NAME)
       --build-arg DB_USER=$(DB_USER)
-      --build-arg PASSWORD_FILE_PATH=$(passwordFilePath)
+      --build-arg DB_PASSWORD=$(DB_PASSWORD)
       --build-arg VENDOR_ARTIFACT=vendor-artifact
     tags: |
       $(tag)
