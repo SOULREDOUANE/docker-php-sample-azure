@@ -58,6 +58,13 @@ steps:
     tags: |
       $(tag)
 
+- script: |
+    docker run -d --name test-container -p 8080:80 $(repositoryName):$(tag)
+    sleep 10  # Wait for the container to start
+    curl --fail http://localhost:8080/database.php || (echo "Health check failed!" && exit 1)
+    docker stop test-container && docker rm test-container
+  displayName: 'Run Container and Perform Health Check'
+
 # - script: |
 #     docker build -t myapp:latest .
 #   displayName: 'Build Docker image'
