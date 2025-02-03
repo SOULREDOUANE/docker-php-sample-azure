@@ -18,8 +18,12 @@ stages:
 - stage: Setup_Custom_Agent
   jobs:
   - job: CreateK8sAgent
+    # pool:
+    #   vmImage: 'ubuntu-latest'  # Start with Microsoft-hosted agent
     pool:
-      vmImage: 'ubuntu-latest'  # Start with Microsoft-hosted agent
+      name: 'default'
+      demands:
+        - agent.name -equals jesa-agent
     steps:
     - checkout: k8s_agent_repo
     - task: KubectlInstaller@0
