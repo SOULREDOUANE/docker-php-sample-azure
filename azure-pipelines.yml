@@ -1,74 +1,199 @@
 trigger:
-- main
-
-# pool:
-#   vmImage: ubuntu-latest
-pool:
-  name : default
-  demands: 
-  - agent.name -equals dockeragent-soul-agent #jesa-agent
-
+  - main
+resources:
+  repositories:
+    - repository: k8s_agent_repo          # identifier to use in checkout
+      type: github
+      endpoint: 'github-repo'
+      name: SOULREDOUANE/jesa-k8s-agent  # your repo name
+      ref: main 
 variables:
   tag: '$(Build.BuildId)'
-  repositoryName: jesaregistry/jesa-php
-  phpVersion: 8.2.27
+  repositoryName: 'jesaregistry/jesa-php'
+  phpVersion: '8.2.27'
+  k8sNamespace: 'jesa-med-namespace'
+  jobName: 'azp-agent-job'
+
+stages:
+- stage: Setup_Custom_Agent
+  jobs:
+  - job: CreateK8sAgent
+    pool:
+      vmImage: 'ubuntu-latest'  # Start with Microsoft-hosted agent
+    steps:
+    - checkout: k8s_agent_repo
+    - task: KubectlInstaller@0
+      inputs:
+        kubectlVersion: 'latest'
+
+    - task: Kubernetes@1
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: 'k8s-cluster'
+        command: 'apply'
+        useConfigurationFile: true
+        configuration: '$(System.DefaultWorkingDirectory)/k8s_manifests/agent-job.yml'
+
+    # Wait for agent to be ready
+    - bash: |
+        MAX_RETRIES=30
+        RETRY_INTERVAL=10
+        for ((i=1; i<=MAX_RETRIES; i++)); do
+          STATUS=$(kubectl get job $(jobName) -n $(k8sNamespace) -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}')
+          if [ "$STATUS" == "True" ]; then
+            echo "Agent is ready!"
+            exit 0
+          fi
+          echo "Waiting for agent to be ready... Attempt $i/$MAX_RETRIES"
+          sleep $RETRY_INTERVAL
+        done
+        exit 1
+      displayName: 'Wait for K8s agent to be ready'
+
+- stage: Build_And_Test
+  dependsOn: Setup_Custom_Agent
+  jobs:
+  - job: BuildTest
+    pool:
+      name: 'default'
+      demands:
+        - agent.name -equals dockeragent-soul-agent
+    steps:
+    - script: |
+        sudo update-alternatives --set php /usr/bin/php$(phpVersion)
+        sudo update-alternatives --set phar /usr/bin/phar$(phpVersion)
+        sudo update-alternatives --set phpdbg /usr/bin/phpdbg$(phpVersion)
+        sudo update-alternatives --set php-cgi /usr/bin/php-cgi$(phpVersion)
+        sudo update-alternatives --set phar.phar /usr/bin/phar.phar$(phpVersion)
+        php -version
+      displayName: 'Use PHP version $(phpVersion)'
+
+    - script: composer install --no-interaction --prefer-dist
+      displayName: 'composer install'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: 'vendor'
+        ArtifactName: 'vendor-artifact'
+        publishLocation: 'Container'
+
+    - script: |
+        ./vendor/bin/phpunit tests/HelloWorldTest.php --log-junit test-results.xml
+      displayName: 'Run PHPUnit Tests'
+      continueOnError: true
+
+    - task: PublishTestResults@2
+      displayName: 'Publish Test Results'
+      inputs:
+        testResultsFiles: 'test-results.xml'
+        testRunTitle: 'PHPUnit Test Results'
+        testResultsFormat: 'JUnit'
+
+    - task: Docker@2
+      inputs:
+        containerRegistry: acr-registry
+        repository: $(repositoryName)
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        arguments: '--build-arg VENDOR_ARTIFACT=vendor-artifact'
+        tags: |
+          $(tag)
+
+    - script: |
+        docker run -d --name test-container -p 8080:80 jesaregistry.azurecr.io/$(repositoryName):$(tag)
+        sleep 10
+        curl --fail http://localhost:8080/database.php || (echo "Health check failed!" && exit 1)
+        docker stop test-container && docker rm test-container
+      displayName: 'Run Container and Perform Health Check'
+
+- stage: Cleanup
+  condition: always()
+  dependsOn: Build_And_Test
+  jobs:
+  - job: CleanupResources
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: Kubernetes@1
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: 'k8s-cluster'
+        command: 'delete'
+        arguments: 'job $(jobName) -n $(k8sNamespace)'
 
 
-steps:
-- script: |
-    sudo update-alternatives --set php /usr/bin/php$(phpVersion)
-    sudo update-alternatives --set phar /usr/bin/phar$(phpVersion)
-    sudo update-alternatives --set phpdbg /usr/bin/phpdbg$(phpVersion)
-    sudo update-alternatives --set php-cgi /usr/bin/php-cgi$(phpVersion)
-    sudo update-alternatives --set phar.phar /usr/bin/phar.phar$(phpVersion)
-    php -version
-  displayName: 'Use PHP version $(phpVersion)'
 
-- script: composer install --no-interaction --prefer-dist
-  displayName: 'composer install'
+# trigger:
+# - main
 
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: 'vendor'
-    ArtifactName: 'vendor-artifact'
-    publishLocation: 'Container'
+# # pool:
+# #   vmImage: ubuntu-latest
+# pool:
+#   name : default
+#   demands: 
+#   - agent.name -equals dockeragent-soul-agent #jesa-agent
 
-# Run tests
-- script: |
-    ./vendor/bin/phpunit tests/HelloWorldTest.php --log-junit test-results.xml
-  displayName: 'Run PHPUnit Tests'
-  continueOnError: true  # Ensure pipeline continues even if tests fail
+# variables:
+#   tag: '$(Build.BuildId)'
+#   repositoryName: jesaregistry/jesa-php
+#   phpVersion: 8.2.27
 
-- task: PublishTestResults@2
-  displayName: 'Publish Test Results'
-  inputs:
-    testResultsFiles: 'test-results.xml'
-    testRunTitle: 'PHPUnit Test Results'
-    testResultsFormat: 'JUnit'
-# - task: DownloadBuildArtifacts@0
+
+# steps:
+# - script: |
+#     sudo update-alternatives --set php /usr/bin/php$(phpVersion)
+#     sudo update-alternatives --set phar /usr/bin/phar$(phpVersion)
+#     sudo update-alternatives --set phpdbg /usr/bin/phpdbg$(phpVersion)
+#     sudo update-alternatives --set php-cgi /usr/bin/php-cgi$(phpVersion)
+#     sudo update-alternatives --set phar.phar /usr/bin/phar.phar$(phpVersion)
+#     php -version
+#   displayName: 'Use PHP version $(phpVersion)'
+
+# - script: composer install --no-interaction --prefer-dist
+#   displayName: 'composer install'
+
+# - task: PublishBuildArtifacts@1
 #   inputs:
-#     artifactName: 'vendor-artifact'
-#     downloadPath: '$(Build.ArtifactStagingDirectory)'
-- task: Docker@2
-  inputs:
-    containerRegistry: acr-registry #dockerhub
-    repository: $(repositoryName)
-    command: 'buildAndPush'
-    Dockerfile: '**/Dockerfile'
-    # buildContext: '$(Build.SourcesDirectory)'
-    arguments: '--build-arg VENDOR_ARTIFACT=vendor-artifact'
-    tags: |
-      $(tag)
+#     PathtoPublish: 'vendor'
+#     ArtifactName: 'vendor-artifact'
+#     publishLocation: 'Container'
 
-- script: |
-    docker run -d --name test-container -p 8080:80 jesaregistry.azurecr.io/$(repositoryName):$(tag)
-    sleep 10  # Wait for the container to start
-    curl --fail http://localhost:8080/database.php || (echo "Health check failed!" && exit 1)
-    docker stop test-container && docker rm test-container
-  displayName: 'Run Container and Perform Health Check'
+# # Run tests
+# - script: |
+#     ./vendor/bin/phpunit tests/HelloWorldTest.php --log-junit test-results.xml
+#   displayName: 'Run PHPUnit Tests'
+#   continueOnError: true  # Ensure pipeline continues even if tests fail
+
+# - task: PublishTestResults@2
+#   displayName: 'Publish Test Results'
+#   inputs:
+#     testResultsFiles: 'test-results.xml'
+#     testRunTitle: 'PHPUnit Test Results'
+#     testResultsFormat: 'JUnit'
+# # - task: DownloadBuildArtifacts@0
+# #   inputs:
+# #     artifactName: 'vendor-artifact'
+# #     downloadPath: '$(Build.ArtifactStagingDirectory)'
+# - task: Docker@2
+#   inputs:
+#     containerRegistry: acr-registry #dockerhub
+#     repository: $(repositoryName)
+#     command: 'buildAndPush'
+#     Dockerfile: '**/Dockerfile'
+#     # buildContext: '$(Build.SourcesDirectory)'
+#     arguments: '--build-arg VENDOR_ARTIFACT=vendor-artifact'
+#     tags: |
+#       $(tag)
 
 # - script: |
-#     docker build -t myapp:latest .
-#   displayName: 'Build Docker image'
+#     docker run -d --name test-container -p 8080:80 jesaregistry.azurecr.io/$(repositoryName):$(tag)
+#     sleep 10  # Wait for the container to start
+#     curl --fail http://localhost:8080/database.php || (echo "Health check failed!" && exit 1)
+#     docker stop test-container && docker rm test-container
+#   displayName: 'Run Container and Perform Health Check'
+
+# # - script: |
+# #     docker build -t myapp:latest .
+# #   displayName: 'Build Docker image'
  
 
