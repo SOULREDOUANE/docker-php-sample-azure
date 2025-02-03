@@ -1,12 +1,12 @@
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
 # pool:
-#   name : default
-#   demands: 
-#   - agent.name -equals jesa-agent
+#   vmImage: ubuntu-latest
+pool:
+  name : default
+  demands: 
+  - agent.name -equals dockeragent-soul-agent #jesa-agent
 
 variables:
   tag: '$(Build.BuildId)'
