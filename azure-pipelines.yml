@@ -40,7 +40,7 @@ stages:
 
     # Wait for agent to be ready
     - bash: |
-        MAX_RETRIES=40
+        MAX_RETRIES=45
         RETRY_INTERVAL=10
         for ((i=1; i<=MAX_RETRIES; i++)); do
           RUNNING=$(kubectl get job $(jobName) -n $(k8sNamespace) -o jsonpath='{.status.active}')
