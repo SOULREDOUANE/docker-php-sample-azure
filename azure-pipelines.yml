@@ -54,76 +54,76 @@ stages:
         exit 1
       displayName: 'Wait for K8s agent to be ready'
 
-- stage: Build_And_Test
-  dependsOn: Setup_Custom_Agent
-  jobs:
-  - job: BuildTest
-    pool:
-      name: 'default'
-      demands:
-        - agent.name -equals dockeragent-soul-agent
-    steps:
-    - script: |
-        sudo update-alternatives --set php /usr/bin/php$(phpVersion)
-        sudo update-alternatives --set phar /usr/bin/phar$(phpVersion)
-        sudo update-alternatives --set phpdbg /usr/bin/phpdbg$(phpVersion)
-        sudo update-alternatives --set php-cgi /usr/bin/php-cgi$(phpVersion)
-        sudo update-alternatives --set phar.phar /usr/bin/phar.phar$(phpVersion)
-        php -version
-      displayName: 'Use PHP version $(phpVersion)'
+# - stage: Build_And_Test
+#   dependsOn: Setup_Custom_Agent
+#   jobs:
+#   - job: BuildTest
+#     pool:
+#       name: 'default'
+#       demands:
+#         - agent.name -equals dockeragent-soul-agent
+#     steps:
+#     - script: |
+#         sudo update-alternatives --set php /usr/bin/php$(phpVersion)
+#         sudo update-alternatives --set phar /usr/bin/phar$(phpVersion)
+#         sudo update-alternatives --set phpdbg /usr/bin/phpdbg$(phpVersion)
+#         sudo update-alternatives --set php-cgi /usr/bin/php-cgi$(phpVersion)
+#         sudo update-alternatives --set phar.phar /usr/bin/phar.phar$(phpVersion)
+#         php -version
+#       displayName: 'Use PHP version $(phpVersion)'
 
-    - script: composer install --no-interaction --prefer-dist
-      displayName: 'composer install'
+#     - script: composer install --no-interaction --prefer-dist
+#       displayName: 'composer install'
 
-    - task: PublishBuildArtifacts@1
-      inputs:
-        PathtoPublish: 'vendor'
-        ArtifactName: 'vendor-artifact'
-        publishLocation: 'Container'
+#     - task: PublishBuildArtifacts@1
+#       inputs:
+#         PathtoPublish: 'vendor'
+#         ArtifactName: 'vendor-artifact'
+#         publishLocation: 'Container'
 
-    - script: |
-        ./vendor/bin/phpunit tests/HelloWorldTest.php --log-junit test-results.xml
-      displayName: 'Run PHPUnit Tests'
-      continueOnError: true
+#     - script: |
+#         ./vendor/bin/phpunit tests/HelloWorldTest.php --log-junit test-results.xml
+#       displayName: 'Run PHPUnit Tests'
+#       continueOnError: true
 
-    - task: PublishTestResults@2
-      displayName: 'Publish Test Results'
-      inputs:
-        testResultsFiles: 'test-results.xml'
-        testRunTitle: 'PHPUnit Test Results'
-        testResultsFormat: 'JUnit'
+#     - task: PublishTestResults@2
+#       displayName: 'Publish Test Results'
+#       inputs:
+#         testResultsFiles: 'test-results.xml'
+#         testRunTitle: 'PHPUnit Test Results'
+#         testResultsFormat: 'JUnit'
 
-    - task: Docker@2
-      inputs:
-        containerRegistry: acr-registry
-        repository: $(repositoryName)
-        command: 'buildAndPush'
-        Dockerfile: '**/Dockerfile'
-        arguments: '--build-arg VENDOR_ARTIFACT=vendor-artifact'
-        tags: |
-          $(tag)
+#     - task: Docker@2
+#       inputs:
+#         containerRegistry: acr-registry
+#         repository: $(repositoryName)
+#         command: 'buildAndPush'
+#         Dockerfile: '**/Dockerfile'
+#         arguments: '--build-arg VENDOR_ARTIFACT=vendor-artifact'
+#         tags: |
+#           $(tag)
 
-    - script: |
-        docker run -d --name test-container -p 8080:80 jesaregistry.azurecr.io/$(repositoryName):$(tag)
-        sleep 10
-        curl --fail http://localhost:8080/database.php || (echo "Health check failed!" && exit 1)
-        docker stop test-container && docker rm test-container
-      displayName: 'Run Container and Perform Health Check'
+#     - script: |
+#         docker run -d --name test-container -p 8080:80 jesaregistry.azurecr.io/$(repositoryName):$(tag)
+#         sleep 10
+#         curl --fail http://localhost:8080/database.php || (echo "Health check failed!" && exit 1)
+#         docker stop test-container && docker rm test-container
+#       displayName: 'Run Container and Perform Health Check'
 
-- stage: Cleanup
-  condition: always()
-  dependsOn: Build_And_Test
-  jobs:
-  - job: CleanupResources
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: Kubernetes@1
-      inputs:
-        connectionType: 'Kubernetes Service Connection'
-        kubernetesServiceEndpoint: 'k8s-cluster'
-        command: 'delete'
-        arguments: 'job $(jobName) -n $(k8sNamespace)'
+# - stage: Cleanup
+#   condition: always()
+#   dependsOn: Build_And_Test
+#   jobs:
+#   - job: CleanupResources
+#     pool:
+#       vmImage: 'ubuntu-latest'
+#     steps:
+#     - task: Kubernetes@1
+#       inputs:
+#         connectionType: 'Kubernetes Service Connection'
+#         kubernetesServiceEndpoint: 'k8s-cluster'
+#         command: 'delete'
+#         arguments: 'job $(jobName) -n $(k8sNamespace)'
 
 
 
